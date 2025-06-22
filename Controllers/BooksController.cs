@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using BookApi.Models;
+using BookApi.Data;  // Import your Data namespace
+using Microsoft.EntityFrameworkCore;
 
 namespace BookApi.Controllers
 {
@@ -7,38 +9,46 @@ namespace BookApi.Controllers
     [Route("api/[controller]")]
     public class BooksController : ControllerBase
     {
-        private static List<Book> books = new List<Book>
+        private readonly AppDbContext _context;
+
+        public BooksController(AppDbContext context)
         {
-            new Book { Id = 1, Title = "Clean Code", Author = "Robert C. Martin", Year = 2008 },
-            new Book { Id = 2, Title = "The Pragmatic Programmer", Author = "Andy Hunt", Year = 1999 }
-        };
+            _context = context;
+        }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Book>> GetAllBooks() => books;
+        public async Task<ActionResult<IEnumerable<Book>>> GetAllBooks()
+        {
+            var books = await _context.Books.ToListAsync();
+            return Ok(books);
+        }
 
         [HttpGet("{id}")]
-        public ActionResult<Book> GetBook(int id)
+        public async Task<ActionResult<Book>> GetBook(int id)
         {
-            var book = books.FirstOrDefault(b => b.Id == id);
+            var book = await _context.Books.FindAsync(id);
             if (book == null) return NotFound();
-            return book;
+            return Ok(book);
         }
 
         [HttpPost]
-        public ActionResult<Book> AddBook(Book book)
+        public async Task<ActionResult<Book>> AddBook(Book book)
         {
-            book.Id = books.Max(b => b.Id) + 1;
-            books.Add(book);
+            _context.Books.Add(book);
+            await _context.SaveChangesAsync();
+
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteBook(int id)
+        public async Task<IActionResult> DeleteBook(int id)
         {
-            var book = books.FirstOrDefault(b => b.Id == id);
+            var book = await _context.Books.FindAsync(id);
             if (book == null) return NotFound();
 
-            books.Remove(book);
+            _context.Books.Remove(book);
+            await _context.SaveChangesAsync();
+
             return NoContent();
         }
     }

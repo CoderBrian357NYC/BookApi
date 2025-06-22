@@ -1,0 +1,9 @@
+bin/
+obj/
+*.db
+*.sqlite
+.vs/
+*.user
+*.db-shm
+*.db-wal
+
